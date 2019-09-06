@@ -17,7 +17,7 @@ import (
 
 	vrand "vuvuzela.io/crypto/rand"
 	. "vuvuzela.io/vuvuzela"
-	. "vuvuzela.io/vuvuzela/internal"
+	. "github.com/numbleroot/vuvuzela/tools"
 	"vuvuzela.io/vuvuzela/vrpc"
 )
 

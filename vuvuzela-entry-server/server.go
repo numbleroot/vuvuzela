@@ -13,7 +13,7 @@ import (
 
 	"vuvuzela.io/concurrency"
 	. "vuvuzela.io/vuvuzela"
-	. "vuvuzela.io/vuvuzela/internal"
+	. "github.com/numbleroot/vuvuzela/tools"
 	"vuvuzela.io/vuvuzela/vrpc"
 )
 

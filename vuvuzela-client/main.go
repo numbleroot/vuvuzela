@@ -9,7 +9,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	. "vuvuzela.io/vuvuzela"
-	. "vuvuzela.io/vuvuzela/internal"
+	. "github.com/numbleroot/vuvuzela/tools"
 )
 
 var doInit = flag.Bool("init", false, "create default config file")

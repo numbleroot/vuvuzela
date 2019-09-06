@@ -11,7 +11,7 @@ import (
 	"github.com/davidlazar/gocui"
 
 	. "vuvuzela.io/vuvuzela"
-	. "vuvuzela.io/vuvuzela/internal"
+	. "github.com/numbleroot/vuvuzela/tools"
 )
 
 type GuiClient struct {
