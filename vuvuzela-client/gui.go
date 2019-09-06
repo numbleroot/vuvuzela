@@ -10,7 +10,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/davidlazar/gocui"
 
-	. "vuvuzela.io/vuvuzela"
+	. "github.com/numbleroot/vuvuzela"
 	. "github.com/numbleroot/vuvuzela/tools"
 )
 

@@ -16,9 +16,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 
 	vrand "vuvuzela.io/crypto/rand"
-	. "vuvuzela.io/vuvuzela"
+	. "github.com/numbleroot/vuvuzela"
 	. "github.com/numbleroot/vuvuzela/tools"
-	"vuvuzela.io/vuvuzela/vrpc"
+	"github.com/numbleroot/vuvuzela/vrpc"
 )
 
 var doInit = flag.Bool("init", false, "create default config file")

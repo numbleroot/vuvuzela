@@ -11,7 +11,7 @@ import (
 	"vuvuzela.io/concurrency"
 	"vuvuzela.io/crypto/rand"
 	"vuvuzela.io/crypto/shuffle"
-	"vuvuzela.io/vuvuzela/vrpc"
+	"github.com/numbleroot/vuvuzela/vrpc"
 )
 
 type DialService struct {

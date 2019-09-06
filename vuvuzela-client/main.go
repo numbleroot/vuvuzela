@@ -8,7 +8,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	. "vuvuzela.io/vuvuzela"
+	. "github.com/numbleroot/vuvuzela"
 	. "github.com/numbleroot/vuvuzela/tools"
 )
 

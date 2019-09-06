@@ -12,9 +12,9 @@ import (
 	"github.com/gorilla/websocket"
 
 	"vuvuzela.io/concurrency"
-	. "vuvuzela.io/vuvuzela"
+	. "github.com/numbleroot/vuvuzela"
 	. "github.com/numbleroot/vuvuzela/tools"
-	"vuvuzela.io/vuvuzela/vrpc"
+	"github.com/numbleroot/vuvuzela/vrpc"
 )
 
 type server struct {
