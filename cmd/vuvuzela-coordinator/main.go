@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/numbleroot/vuvuzela/tools/vzlog"
 	"vuvuzela.io/alpenhorn/cmd/cmdutil"
 	"vuvuzela.io/alpenhorn/config"
 	"vuvuzela.io/alpenhorn/edtls"
@@ -20,7 +21,6 @@ import (
 	"vuvuzela.io/alpenhorn/log"
 	"vuvuzela.io/vuvuzela/cmd/cmdconf"
 	"vuvuzela.io/vuvuzela/coordinator"
-	"vuvuzela.io/vuvuzela/internal/vzlog"
 )
 
 var (

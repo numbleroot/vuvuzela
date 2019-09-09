@@ -30,10 +30,13 @@ func (srv *Server) LoadPersistedState() error {
 		return fmt.Errorf("no data: %s", srv.PersistPath)
 	}
 
-	ver := data[0]
-	if ver != version {
-		return fmt.Errorf("unexpected version: want version %d, got %d", version, ver)
-	}
+	// For evaluation purposes, we ignore the version number.
+	/*
+		ver := data[0]
+		if ver != version {
+			return fmt.Errorf("unexpected version: want version %d, got %d", version, ver)
+		}
+	*/
 
 	var st persistedState
 	err = json.Unmarshal(data[1:], &st)

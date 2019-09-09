@@ -18,14 +18,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
+	"github.com/numbleroot/vuvuzela/eval"
+	"github.com/numbleroot/vuvuzela/tools/vzlog"
 	"vuvuzela.io/alpenhorn/cmd/cmdutil"
-	"vuvuzela.io/alpenhorn/config"
 	"vuvuzela.io/alpenhorn/edtls"
 	"vuvuzela.io/alpenhorn/encoding/toml"
 	"vuvuzela.io/alpenhorn/log"
 	"vuvuzela.io/vuvuzela/cmd/cmdconf"
 	"vuvuzela.io/vuvuzela/convo"
-	"vuvuzela.io/vuvuzela/internal/vzlog"
 	"vuvuzela.io/vuvuzela/mixnet"
 	pb "vuvuzela.io/vuvuzela/mixnet/convopb"
 )
@@ -75,7 +75,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	signedConfig, err := config.StdClient.CurrentConfig("Convo")
+	// For evaluation purposes, we swap the Alpenhorn
+	// config file retrieval with a static one.
+	// signedConfig, err := config.StdClient.CurrentConfig("Convo")
+	signedConfig, err := eval.StaticConfig()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -18,6 +18,7 @@ import (
 	"golang.org/x/crypto/ed25519"
 	"golang.org/x/net/context"
 
+	"github.com/numbleroot/vuvuzela/eval"
 	"vuvuzela.io/alpenhorn/config"
 	"vuvuzela.io/alpenhorn/edtls"
 	"vuvuzela.io/alpenhorn/errors"
@@ -252,7 +253,10 @@ func (srv *Server) updateConfigLoop() {
 	for {
 		log.Infof("Fetching latest config")
 
-		currentConfig, err := srv.ConfigClient.CurrentConfig(srv.Service)
+		// For evaluation purposes, we swap the Alpenhorn
+		// config file retrieval with a static one.
+		// currentConfig, err := srv.ConfigClient.CurrentConfig(srv.Service)
+		currentConfig, err := eval.StaticConfig()
 		if err != nil {
 			log.Errorf("failed to fetch current config: %s", err)
 			srv.mu.Lock()

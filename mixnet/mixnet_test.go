@@ -19,12 +19,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/numbleroot/vuvuzela/tools/mock"
 	"vuvuzela.io/alpenhorn/errors"
 	"vuvuzela.io/alpenhorn/log"
 	"vuvuzela.io/concurrency"
 	"vuvuzela.io/crypto/onionbox"
 	"vuvuzela.io/vuvuzela/convo"
-	"vuvuzela.io/vuvuzela/internal/mock"
 	"vuvuzela.io/vuvuzela/mixnet"
 )
 
