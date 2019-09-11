@@ -47,59 +47,82 @@ func ReadPKI(jsonPath string) *PKI {
 }
 
 func (pki *PKI) ServerKeys() BoxKeys {
+
 	keys := make([]*BoxKey, 0, 3)
+
 	for _, s := range pki.ServerOrder {
 		info := pki.Servers[s]
 		keys = append(keys, info.PublicKey)
 	}
+
 	return keys
 }
 
 func (pki *PKI) FirstServer() string {
+
 	s := pki.ServerOrder[0]
+
 	return pki.Servers[s].Address
 }
 
 func (pki *PKI) LastServer() string {
+
 	s := pki.ServerOrder[len(pki.ServerOrder)-1]
+
 	return pki.Servers[s].Address
 }
 
 func (pki *PKI) Index(serverName string) int {
+
 	for i, s := range pki.ServerOrder {
+
 		if s == serverName {
 			return i
 		}
 	}
+
 	log.Fatalf("pki.Index: server %q not found", serverName)
+
 	return -1
 }
 
 func (pki *PKI) NextServer(serverName string) string {
+
 	i := pki.Index(serverName)
-	if i < len(pki.ServerOrder)-1 {
-		s := pki.ServerOrder[i+1]
+
+	if i < (len(pki.ServerOrder) - 1) {
+
+		s := pki.ServerOrder[(i + 1)]
+
 		return pki.Servers[s].Address
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 func (pki *PKI) NextServerKeys(serverName string) BoxKeys {
+
 	i := pki.Index(serverName)
+
 	var keys []*BoxKey
-	for _, s := range pki.ServerOrder[i+1:] {
+
+	for _, s := range pki.ServerOrder[(i + 1):] {
 		keys = append(keys, pki.Servers[s].PublicKey)
 	}
+
 	return keys
 }
 
 func (pki *PKI) IncomingOnionOverhead(serverName string) int {
+
 	i := len(pki.ServerOrder) - pki.Index(serverName)
+
 	return i * onionbox.Overhead
 }
 
 func (pki *PKI) OutgoingOnionOverhead(serverName string) int {
+
 	i := len(pki.ServerOrder) - pki.Index(serverName)
+
 	return i * box.Overhead
 }

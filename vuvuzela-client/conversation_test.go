@@ -10,15 +10,18 @@ import (
 )
 
 func TestSoloConversation(t *testing.T) {
+
 	public, private, err := GenerateBoxKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	convo := &Conversation{
 		peerPublicKey: public,
 		myPublicKey:   public,
 		myPrivateKey:  private,
 	}
+
 	if convo.myRole() != convo.theirRole() {
 		t.Fatalf("expecting roles to match")
 	}
@@ -27,7 +30,9 @@ func TestSoloConversation(t *testing.T) {
 	rand.Read(msg)
 
 	var round uint32 = 42
+
 	ctxt := convo.Seal(msg, round, convo.myRole())
+
 	xmsg, ok := convo.Open(ctxt, round, convo.theirRole())
 	if !ok {
 		t.Fatalf("failed to decrypt message")
@@ -39,6 +44,7 @@ func TestSoloConversation(t *testing.T) {
 }
 
 func TestMarshalConvoMessage(t *testing.T) {
+
 	now := time.Now()
 	tsm := &TimestampMessage{Timestamp: now}
 	cm := &ConvoMessage{Body: tsm}

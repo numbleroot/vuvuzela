@@ -11,10 +11,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
 
-	"vuvuzela.io/concurrency"
 	. "github.com/numbleroot/vuvuzela"
 	. "github.com/numbleroot/vuvuzela/tools"
 	"github.com/numbleroot/vuvuzela/vrpc"
+	"vuvuzela.io/concurrency"
 )
 
 type server struct {
@@ -58,19 +58,26 @@ func (srv *server) register(c *connection) {
 }
 
 func (srv *server) allConnections() []*connection {
+
 	srv.connectionsMu.Lock()
+
 	conns := make([]*connection, len(srv.connections))
+
 	i := 0
 	for c := range srv.connections {
 		conns[i] = c
 		i++
 	}
+
 	srv.connectionsMu.Unlock()
+
 	return conns
 }
 
 func broadcast(conns []*connection, v interface{}) {
+
 	concurrency.ParallelFor(len(conns), func(p *concurrency.P) {
+
 		for i, ok := p.Next(); ok; i, ok = p.Next() {
 			conns[i].Send(v)
 		}
@@ -78,6 +85,7 @@ func broadcast(conns []*connection, v interface{}) {
 }
 
 func (c *connection) Close() {
+
 	c.ws.Close()
 
 	c.srv.connectionsMu.Lock()
@@ -86,6 +94,7 @@ func (c *connection) Close() {
 }
 
 func (c *connection) Send(v interface{}) {
+
 	const writeWait = 10 * time.Second
 
 	e, err := Envelop(v)
@@ -96,17 +105,22 @@ func (c *connection) Send(v interface{}) {
 
 	c.Lock()
 	c.ws.SetWriteDeadline(time.Now().Add(writeWait))
-	if err := c.ws.WriteJSON(e); err != nil {
+
+	err = c.ws.WriteJSON(e)
+	if err != nil {
 		log.WithFields(log.Fields{"call": "WriteJSON"}).Debug(err)
 		c.Unlock()
 		c.Close()
 		return
 	}
+
 	c.Unlock()
 }
 
 func (c *connection) readLoop() {
+
 	for {
+
 		var e Envelope
 		if err := c.ws.ReadJSON(&e); err != nil {
 			log.WithFields(log.Fields{"call": "ReadJSON"}).Debug(err)
@@ -119,22 +133,17 @@ func (c *connection) readLoop() {
 			msg := fmt.Sprintf("error parsing request: %s", err)
 			go c.Send(&BadRequestError{Err: msg})
 		}
-		go c.handleRequest(v)
-	}
-}
 
-func (c *connection) handleRequest(v interface{}) {
-	switch v := v.(type) {
-	case *ConvoRequest:
-		c.handleConvoRequest(v)
-	case *DialRequest:
-		c.handleDialRequest(v)
+		go c.handleConvoRequest(v.(*ConvoRequest))
 	}
 }
 
 func (c *connection) handleConvoRequest(r *ConvoRequest) {
+
 	srv := c.srv
+
 	srv.convoMu.Lock()
+
 	currRound := srv.convoRound
 	if r.Round != currRound {
 		srv.convoMu.Unlock()
@@ -142,35 +151,23 @@ func (c *connection) handleConvoRequest(r *ConvoRequest) {
 		go c.Send(&ConvoError{Round: r.Round, Err: err})
 		return
 	}
+
 	rr := &convoReq{
 		conn:  c,
 		onion: r.Onion,
 	}
+
 	srv.convoRequests = append(srv.convoRequests, rr)
+
 	srv.convoMu.Unlock()
 }
 
-func (c *connection) handleDialRequest(r *DialRequest) {
-	srv := c.srv
-	srv.dialMu.Lock()
-	currRound := srv.dialRound
-	if r.Round != currRound {
-		srv.dialMu.Unlock()
-		err := fmt.Sprintf("wrong round (currently %d)", currRound)
-		go c.Send(&DialError{Round: r.Round, Err: err})
-		return
-	}
-	rr := &dialReq{
-		conn:  c,
-		onion: r.Onion,
-	}
-	srv.dialRequests = append(srv.dialRequests, rr)
-	srv.dialMu.Unlock()
-}
-
 func (srv *server) convoRoundLoop() {
+
 	for {
-		if err := NewConvoRound(srv.firstServer, srv.convoRound); err != nil {
+
+		err := NewConvoRound(srv.firstServer, srv.convoRound)
+		if err != nil {
 			log.WithFields(log.Fields{"service": "convo", "round": srv.convoRound, "call": "NewConvoRound"}).Error(err)
 			time.Sleep(10 * time.Second)
 			continue
@@ -189,31 +186,11 @@ func (srv *server) convoRoundLoop() {
 	}
 }
 
-func (srv *server) dialRoundLoop() {
-	for {
-		time.Sleep(DialWait)
-		if err := NewDialRound(srv.firstServer, srv.dialRound); err != nil {
-			log.WithFields(log.Fields{"service": "dial", "round": srv.dialRound, "call": "NewDialRound"}).Error(err)
-			time.Sleep(10 * time.Second)
-			continue
-		}
-		log.WithFields(log.Fields{"service": "dial", "round": srv.dialRound}).Info("Broadcast")
-
-		broadcast(srv.allConnections(), &AnnounceDialRound{srv.dialRound, TotalDialBuckets})
-		time.Sleep(*receiveWait)
-
-		srv.dialMu.Lock()
-		go srv.runDialRound(srv.dialRound, srv.dialRequests)
-
-		srv.dialRound += 1
-		srv.dialRequests = make([]*dialReq, 0, len(srv.dialRequests))
-		srv.dialMu.Unlock()
-	}
-}
-
 func (srv *server) runConvoRound(round uint32, requests []*convoReq) {
+
 	conns := make([]*connection, len(requests))
 	onions := make([][]byte, len(requests))
+
 	for i, r := range requests {
 		conns[i] = r.conn
 		onions[i] = r.onion
@@ -242,57 +219,13 @@ func (srv *server) runConvoRound(round uint32, requests []*convoReq) {
 	})
 }
 
-func (srv *server) runDialRound(round uint32, requests []*dialReq) {
-	conns := make([]*connection, len(requests))
-	onions := make([][]byte, len(requests))
-	for i, r := range requests {
-		conns[i] = r.conn
-		onions[i] = r.onion
-	}
-
-	rlog := log.WithFields(log.Fields{"service": "dial", "round": round})
-	rlog.WithFields(log.Fields{"call": "RunDialRound", "onions": len(onions)}).Info()
-
-	if err := RunDialRound(srv.firstServer, round, onions); err != nil {
-		rlog.WithFields(log.Fields{"call": "RunDialRound"}).Error(err)
-		broadcast(conns, &DialError{Round: round, Err: "server error"})
-		return
-	}
-
-	args := &DialBucketsArgs{Round: round}
-	result := new(DialBucketsResult)
-	if err := srv.lastServer.Call("DialService.Buckets", args, result); err != nil {
-		rlog.WithFields(log.Fields{"call": "Buckets"}).Error(err)
-		broadcast(conns, &DialError{Round: round, Err: "server error"})
-		return
-	}
-
-	intros := 0
-	for _, b := range result.Buckets {
-		intros += len(b)
-	}
-	rlog.WithFields(log.Fields{"buckets": len(result.Buckets), "intros": intros}).Info("Buckets")
-
-	concurrency.ParallelFor(len(conns), func(p *concurrency.P) {
-		for i, ok := p.Next(); ok; i, ok = p.Next() {
-			c := conns[i]
-			bi := KeyDialBucket(c.publicKey, TotalDialBuckets)
-
-			db := &DialBucket{
-				Round:  round,
-				Intros: result.Buckets[bi-1],
-			}
-			c.Send(db)
-		}
-	})
-}
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
 func (srv *server) wsHandler(w http.ResponseWriter, r *http.Request) {
+
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", 405)
 		return
@@ -315,6 +248,7 @@ func (srv *server) wsHandler(w http.ResponseWriter, r *http.Request) {
 		srv:       srv,
 		publicKey: pk,
 	}
+
 	srv.register(c)
 	c.readLoop()
 }
@@ -324,6 +258,7 @@ var pkiPath = flag.String("pki", "confs/pki.conf", "pki file")
 var receiveWait = flag.Duration("wait", DefaultReceiveWait, "")
 
 func main() {
+
 	flag.Parse()
 	log.SetFormatter(&ServerFormatter{})
 
@@ -350,7 +285,6 @@ func main() {
 	}
 
 	go srv.convoRoundLoop()
-	go srv.dialRoundLoop()
 
 	http.HandleFunc("/ws", srv.wsHandler)
 
@@ -358,7 +292,10 @@ func main() {
 		Addr: *addr,
 	}
 
-	if err := httpServer.ListenAndServe(); err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	fmt.Printf("Listening on %s for conversation messages.\n", *addr)
+
+	err = httpServer.ListenAndServe()
+	if err != nil {
+		log.Fatalf("ListenAndServe: %v", err)
 	}
 }

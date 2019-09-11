@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
 	_ "net/http/pprof"
 	"net/rpc"
 	"runtime"
@@ -15,10 +14,10 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	vrand "vuvuzela.io/crypto/rand"
 	. "github.com/numbleroot/vuvuzela"
 	. "github.com/numbleroot/vuvuzela/tools"
 	"github.com/numbleroot/vuvuzela/vrpc"
+	vrand "vuvuzela.io/crypto/rand"
 )
 
 var doInit = flag.Bool("init", false, "create default config file")
@@ -41,10 +40,12 @@ type Conf struct {
 }
 
 func WriteDefaultConf(path string) {
+
 	myPublicKey, myPrivateKey, err := GenerateBoxKey(rand.Reader)
 	if err != nil {
 		log.Fatalf("GenerateKey: %s", err)
 	}
+
 	conf := &Conf{
 		ServerName: "mit",
 		PublicKey:  myPublicKey,
@@ -55,13 +56,16 @@ func WriteDefaultConf(path string) {
 	if err != nil {
 		log.Fatalf("json encoding error: %s", err)
 	}
+
 	if err := ioutil.WriteFile(path, data, 0600); err != nil {
 		log.Fatalf("WriteFile: %s", err)
 	}
+
 	fmt.Printf("wrote %q\n", path)
 }
 
 func main() {
+
 	flag.Parse()
 	log.SetFormatter(&ServerFormatter{})
 
@@ -88,7 +92,10 @@ func main() {
 
 	var err error
 	var client *vrpc.Client
-	if addr := pki.NextServer(conf.ServerName); addr != "" {
+
+	addr := pki.NextServer(conf.ServerName)
+	if addr != "" {
+
 		client, err = vrpc.Dial("tcp", addr, runtime.NumCPU())
 		if err != nil {
 			log.Fatalf("vrpc.Dial: %s", err)
@@ -112,50 +119,22 @@ func main() {
 		Client:     client,
 		LastServer: client == nil,
 	}
+
 	InitConvoService(convoService)
 
-	if convoService.LastServer {
-		histogram := &Histogram{Mu: conf.ConvoMu, NumServers: len(pki.ServerOrder)}
-		go histogram.run(convoService.AccessCounts)
-	}
-
-	dialService := &DialService{
-		Idle: &idle,
-
-		Laplace: vrand.Laplace{
-			Mu: conf.ConvoMu,
-			B:  conf.ConvoB,
-		},
-
-		PKI:        pki,
-		ServerName: conf.ServerName,
-		PrivateKey: conf.PrivateKey,
-
-		Client:     client,
-		LastServer: client == nil,
-	}
-	InitDialService(dialService)
-
-	if err := rpc.Register(dialService); err != nil {
+	err = rpc.Register(convoService)
+	if err != nil {
 		log.Fatalf("rpc.Register: %s", err)
-	}
-	if err := rpc.Register(convoService); err != nil {
-		log.Fatalf("rpc.Register: %s", err)
-	}
-
-	if conf.DebugAddr != "" {
-		go func() {
-			log.Println(http.ListenAndServe(conf.DebugAddr, nil))
-		}()
-		runtime.SetBlockProfileRate(1)
 	}
 
 	if conf.ListenAddr == "" {
 		conf.ListenAddr = DefaultServerAddr
 	}
+
 	listen, err := net.Listen("tcp", conf.ListenAddr)
 	if err != nil {
 		log.Fatal("Listen:", err)
 	}
+
 	rpc.Accept(listen)
 }

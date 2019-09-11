@@ -14,8 +14,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/crypto/nacl/box"
 
-	"vuvuzela.io/crypto/onionbox"
 	. "github.com/numbleroot/vuvuzela"
+	"vuvuzela.io/crypto/onionbox"
 )
 
 type Conversation struct {
@@ -37,6 +37,7 @@ type Conversation struct {
 }
 
 func (c *Conversation) Init() {
+
 	c.Lock()
 	c.outQueue = make(chan []byte, 64)
 	c.pendingRounds = make(map[uint32]*pendingRound)
@@ -62,7 +63,10 @@ type TimestampMessage struct {
 	Timestamp time.Time
 }
 
-func (cm *ConvoMessage) Marshal() (msg [SizeMessage]byte) {
+func (cm *ConvoMessage) Marshal() [SizeMessage]byte {
+
+	var msg [SizeMessage]byte
+
 	switch v := cm.Body.(type) {
 	case *TimestampMessage:
 		msg[0] = 0
@@ -71,10 +75,12 @@ func (cm *ConvoMessage) Marshal() (msg [SizeMessage]byte) {
 		msg[0] = 1
 		copy(msg[1:], v.Message)
 	}
-	return
+
+	return msg
 }
 
 func (cm *ConvoMessage) Unmarshal(msg []byte) error {
+
 	switch msg[0] {
 	case 0:
 		ts, _ := binary.Varint(msg[1:])
@@ -86,6 +92,7 @@ func (cm *ConvoMessage) Unmarshal(msg []byte) error {
 	default:
 		return fmt.Errorf("unexpected message type: %d", msg[0])
 	}
+
 	return nil
 }
 
@@ -94,10 +101,10 @@ func (c *Conversation) QueueTextMessage(msg []byte) {
 }
 
 func (c *Conversation) NextConvoRequest(round uint32) *ConvoRequest {
+
 	c.Lock()
 	c.lastRound = round
 	c.Unlock()
-	go c.gui.Flush()
 
 	var body interface{}
 
@@ -109,9 +116,11 @@ func (c *Conversation) NextConvoRequest(round uint32) *ConvoRequest {
 			Timestamp: time.Now(),
 		}
 	}
+
 	msg := &ConvoMessage{
 		Body: body,
 	}
+
 	msgdata := msg.Marshal()
 
 	var encmsg [SizeEncryptedMessage]byte
@@ -129,6 +138,7 @@ func (c *Conversation) NextConvoRequest(round uint32) *ConvoRequest {
 		onionSharedKeys: sharedKeys,
 		sentMessage:     encmsg,
 	}
+
 	c.Lock()
 	c.pendingRounds[round] = pr
 	c.Unlock()
@@ -140,6 +150,7 @@ func (c *Conversation) NextConvoRequest(round uint32) *ConvoRequest {
 }
 
 func (c *Conversation) HandleConvoResponse(r *ConvoResponse) {
+
 	rlog := log.WithFields(log.Fields{"round": r.Round})
 
 	var responding bool
@@ -147,13 +158,13 @@ func (c *Conversation) HandleConvoResponse(r *ConvoResponse) {
 		c.Lock()
 		c.lastPeerResponding = responding
 		c.Unlock()
-		c.gui.Flush()
 	}()
 
 	c.Lock()
 	pr, ok := c.pendingRounds[r.Round]
 	delete(c.pendingRounds, r.Round)
 	c.Unlock()
+
 	if !ok {
 		rlog.Error("round not found")
 		return
@@ -186,7 +197,7 @@ func (c *Conversation) HandleConvoResponse(r *ConvoResponse) {
 	switch m := msg.Body.(type) {
 	case *TextMessage:
 		s := strings.TrimRight(string(m.Message), "\x00")
-		c.gui.Printf("<%s> %s\n", c.peerName, s)
+		fmt.Printf("<%s> %s\n", c.peerName, s)
 	case *TimestampMessage:
 		latency := time.Now().Sub(m.Timestamp)
 		c.Lock()
@@ -202,6 +213,7 @@ type Status struct {
 }
 
 func (c *Conversation) Status() *Status {
+
 	c.RLock()
 	status := &Status{
 		PeerResponding: c.lastPeerResponding,
@@ -209,6 +221,7 @@ func (c *Conversation) Status() *Status {
 		Latency:        float64(c.lastLatency) / float64(time.Second),
 	}
 	c.RUnlock()
+
 	return status
 }
 
@@ -219,31 +232,36 @@ func (c *Conversation) Solo() bool {
 // Roles ensure that messages to the peer and messages from
 // the peer have distinct nonces.
 func (c *Conversation) myRole() byte {
+
 	if bytes.Compare(c.myPublicKey[:], c.peerPublicKey[:]) < 0 {
 		return 0
-	} else {
-		return 1
 	}
+
+	return 1
 }
 
 func (c *Conversation) theirRole() byte {
+
 	if bytes.Compare(c.peerPublicKey[:], c.myPublicKey[:]) < 0 {
 		return 0
-	} else {
-		return 1
 	}
+
+	return 1
 }
 
 func (c *Conversation) Seal(message []byte, round uint32, role byte) []byte {
+
 	var nonce [24]byte
 	binary.BigEndian.PutUint32(nonce[:], round)
 	nonce[23] = role
 
 	ctxt := box.Seal(nil, message, &nonce, c.peerPublicKey.Key(), c.myPrivateKey.Key())
+
 	return ctxt
 }
 
 func (c *Conversation) Open(ctxt []byte, round uint32, role byte) ([]byte, bool) {
+
 	var nonce [24]byte
 	binary.BigEndian.PutUint32(nonce[:], round)
 	nonce[23] = role
@@ -251,10 +269,14 @@ func (c *Conversation) Open(ctxt []byte, round uint32, role byte) ([]byte, bool)
 	return box.Open(nil, ctxt, &nonce, c.peerPublicKey.Key(), c.myPrivateKey.Key())
 }
 
-func (c *Conversation) deadDrop(round uint32) (id DeadDrop) {
+func (c *Conversation) deadDrop(round uint32) DeadDrop {
+
+	var id DeadDrop
+
 	if c.Solo() {
 		rand.Read(id[:])
 	} else {
+
 		var sharedKey [32]byte
 		box.Precompute(&sharedKey, c.peerPublicKey.Key(), c.myPrivateKey.Key())
 
@@ -263,5 +285,6 @@ func (c *Conversation) deadDrop(round uint32) (id DeadDrop) {
 		r := h.Sum(nil)
 		copy(id[:], r)
 	}
-	return
+
+	return id
 }
