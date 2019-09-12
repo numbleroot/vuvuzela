@@ -8,12 +8,15 @@ import (
 )
 
 func ReadJSONFile(path string, val interface{}) {
+
 	f, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
-	if err := json.NewDecoder(f).Decode(val); err != nil {
+
+	err = json.NewDecoder(f).Decode(val)
+	if err != nil {
 		log.Fatalf("json decoding error: %s", err)
 	}
 }

@@ -57,7 +57,8 @@ func WriteDefaultConf(path string) {
 		log.Fatalf("json encoding error: %s", err)
 	}
 
-	if err := ioutil.WriteFile(path, data, 0600); err != nil {
+	err = ioutil.WriteFile(path, data, 0600)
+	if err != nil {
 		log.Fatalf("WriteFile: %s", err)
 	}
 

@@ -8,10 +8,10 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/crypto/nacl/box"
 
+	"github.com/numbleroot/vuvuzela/vrpc"
 	"vuvuzela.io/concurrency"
 	"vuvuzela.io/crypto/rand"
 	"vuvuzela.io/crypto/shuffle"
-	"github.com/numbleroot/vuvuzela/vrpc"
 )
 
 type DialService struct {
@@ -169,15 +169,20 @@ func (srv *DialService) Close(Round uint32, _ *struct{}) error {
 	shuffler.Shuffle(round.incoming)
 
 	if !srv.LastServer {
-		if err := NewDialRound(srv.Client, Round); err != nil {
+
+		err := NewDialRound(srv.Client, Round)
+		if err != nil {
 			return fmt.Errorf("NewDialRound: %s", err)
 		}
 		srv.Idle.Unlock()
 
-		if err := RunDialRound(srv.Client, Round, round.incoming); err != nil {
+		err = RunDialRound(srv.Client, Round, round.incoming)
+		if err != nil {
 			return fmt.Errorf("RunDialRound: %s", err)
 		}
+
 		round.incoming = nil
+
 	} else {
 		srv.Idle.Unlock()
 	}
@@ -196,6 +201,7 @@ type DialBucketsResult struct {
 }
 
 func (srv *DialService) Buckets(args *DialBucketsArgs, result *DialBucketsResult) error {
+
 	log.WithFields(log.Fields{"service": "dial", "rpc": "Buckets", "round": args.Round}).Info()
 
 	if !srv.LastServer {
@@ -210,23 +216,31 @@ func (srv *DialService) Buckets(args *DialBucketsArgs, result *DialBucketsResult
 	buckets := make([][][SizeEncryptedIntro]byte, TotalDialBuckets)
 
 	ex := new(DialExchange)
+
 	for _, m := range round.incoming {
+
 		if len(m) != SizeDialExchange {
 			continue
 		}
-		if err := ex.Unmarshal(m); err != nil {
+
+		err := ex.Unmarshal(m)
+		if err != nil {
 			continue
 		}
+
 		if ex.Bucket == 0 {
 			continue // dummy dead drop
 		}
+
 		if ex.Bucket-1 >= uint32(len(buckets)) {
 			continue
 		}
+
 		buckets[ex.Bucket-1] = append(buckets[ex.Bucket-1], ex.EncryptedIntro)
 	}
 
 	result.Buckets = buckets
+
 	return nil
 }
 
@@ -237,11 +251,14 @@ func NewDialRound(client *vrpc.Client, round uint32) error {
 }
 
 func RunDialRound(client *vrpc.Client, round uint32, onions [][]byte) error {
+
 	spans := concurrency.Spans(len(onions), 4000)
 	calls := make([]*vrpc.Call, len(spans))
 
 	concurrency.ParallelFor(len(calls), func(p *concurrency.P) {
+
 		for i, ok := p.Next(); ok; i, ok = p.Next() {
+
 			span := spans[i]
 			calls[i] = &vrpc.Call{
 				Method: "DialService.Add",
@@ -254,11 +271,13 @@ func RunDialRound(client *vrpc.Client, round uint32, onions [][]byte) error {
 		}
 	})
 
-	if err := client.CallMany(calls); err != nil {
+	err := client.CallMany(calls)
+	if err != nil {
 		return fmt.Errorf("Add: %s", err)
 	}
 
-	if err := client.Call("DialService.Close", round, nil); err != nil {
+	err = client.Call("DialService.Close", round, nil)
+	if err != nil {
 		return fmt.Errorf("Close: %s", err)
 	}
 

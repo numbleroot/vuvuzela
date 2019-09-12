@@ -122,7 +122,9 @@ func (c *connection) readLoop() {
 	for {
 
 		var e Envelope
-		if err := c.ws.ReadJSON(&e); err != nil {
+
+		err := c.ws.ReadJSON(&e)
+		if err != nil {
 			log.WithFields(log.Fields{"call": "ReadJSON"}).Debug(err)
 			c.Close()
 			break

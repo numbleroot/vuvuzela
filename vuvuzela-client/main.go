@@ -137,7 +137,9 @@ func main() {
 	for {
 
 		var e Envelope
-		if err := gc.client.ws.ReadJSON(&e); err != nil {
+
+		err := gc.client.ws.ReadJSON(&e)
+		if err != nil {
 			log.WithFields(log.Fields{"call": "ReadJSON"}).Debug(err)
 			gc.client.Close()
 			break

@@ -51,7 +51,8 @@ func TestMarshalConvoMessage(t *testing.T) {
 	data := cm.Marshal()
 
 	xcm := new(ConvoMessage)
-	if err := xcm.Unmarshal(data[:]); err != nil {
+	err := xcm.Unmarshal(data[:])
+	if err != nil {
 		t.Fatalf("Unmarshal error: %s", err)
 	}
 

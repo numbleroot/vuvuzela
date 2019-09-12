@@ -30,7 +30,9 @@ type Envelope struct {
 }
 
 func (e *Envelope) Open() (interface{}, error) {
+
 	var v interface{}
+
 	switch e.Type {
 	case MsgConvoRequest:
 		v = new(ConvoRequest)
@@ -51,9 +53,12 @@ func (e *Envelope) Open() (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("unknown message type: %d", e.Type)
 	}
-	if err := json.Unmarshal(e.Message, v); err != nil {
+
+	err := json.Unmarshal(e.Message, v)
+	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal: %s", err)
 	}
+
 	return v, nil
 }
 

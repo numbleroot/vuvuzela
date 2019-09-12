@@ -27,7 +27,9 @@ type ConvoExchange struct {
 func (e *ConvoExchange) Marshal() []byte {
 
 	buf := new(bytes.Buffer)
-	if err := binary.Write(buf, binary.BigEndian, e); err != nil {
+
+	err := binary.Write(buf, binary.BigEndian, e)
+	if err != nil {
 		panic(err)
 	}
 
@@ -49,7 +51,9 @@ type Introduction struct {
 func (i *Introduction) Marshal() []byte {
 
 	buf := new(bytes.Buffer)
-	if err := binary.Write(buf, binary.BigEndian, i); err != nil {
+
+	err := binary.Write(buf, binary.BigEndian, i)
+	if err != nil {
 		panic(err)
 	}
 
@@ -71,7 +75,9 @@ type DialExchange struct {
 func (e *DialExchange) Marshal() []byte {
 
 	buf := new(bytes.Buffer)
-	if err := binary.Write(buf, binary.BigEndian, e); err != nil {
+
+	err := binary.Write(buf, binary.BigEndian, e)
+	if err != nil {
 		panic(err)
 	}
 

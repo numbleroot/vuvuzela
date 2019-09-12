@@ -187,7 +187,8 @@ func (c *Conversation) HandleConvoResponse(r *ConvoResponse) {
 	}
 
 	msg := new(ConvoMessage)
-	if err := msg.Unmarshal(msgdata); err != nil {
+	err := msg.Unmarshal(msgdata)
+	if err != nil {
 		rlog.Error("unmarshaling peer message failed")
 		return
 	}
