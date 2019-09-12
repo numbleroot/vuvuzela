@@ -9,6 +9,7 @@ import (
 	"net"
 	_ "net/http/pprof"
 	"net/rpc"
+	"os"
 	"runtime"
 	"sync"
 
@@ -24,6 +25,10 @@ var doInit = flag.Bool("init", false, "create default config file")
 var confPath = flag.String("conf", "", "config file")
 var pkiPath = flag.String("pki", "confs/pki.conf", "pki file")
 var muOverride = flag.Float64("mu", -1.0, "override ConvoMu in conf file")
+
+// Evaluation flags.
+var isEvalFlag = flag.Bool("eval", false, "Append this flag to write evaluation metrics out to a collector process.")
+var metricsPipeFlag = flag.String("metricsPipe", "/tmp/collect", "Specify the named pipe to use for IPC with the collector sidecar.")
 
 type Conf struct {
 	ServerName string
@@ -119,9 +124,22 @@ func main() {
 
 		Client:     client,
 		LastServer: client == nil,
+
+		IsEval: *isEvalFlag,
 	}
 
 	InitConvoService(convoService)
+
+	if convoService.IsEval {
+
+		// Open named pipe for sending metrics to collector.
+		pipe, err := os.OpenFile(*metricsPipeFlag, os.O_WRONLY, 0600)
+		if err != nil {
+			fmt.Printf("Unable to open named pipe for sending metrics to collector: %v\n", err)
+			os.Exit(1)
+		}
+		convoService.MetricsPipe = pipe
+	}
 
 	err = rpc.Register(convoService)
 	if err != nil {

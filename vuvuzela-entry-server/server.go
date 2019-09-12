@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -25,20 +26,14 @@ type server struct {
 	convoRound    uint32
 	convoRequests []*convoReq
 
-	dialMu       sync.Mutex
-	dialRound    uint32
-	dialRequests []*dialReq
-
 	firstServer *vrpc.Client
 	lastServer  *vrpc.Client
+
+	IsEval      bool
+	MetricsPipe *os.File
 }
 
 type convoReq struct {
-	conn  *connection
-	onion []byte
-}
-
-type dialReq struct {
 	conn  *connection
 	onion []byte
 }
@@ -52,6 +47,7 @@ type connection struct {
 }
 
 func (srv *server) register(c *connection) {
+
 	srv.connectionsMu.Lock()
 	srv.connections[c] = true
 	srv.connectionsMu.Unlock()
@@ -148,9 +144,12 @@ func (c *connection) handleConvoRequest(r *ConvoRequest) {
 
 	currRound := srv.convoRound
 	if r.Round != currRound {
+
 		srv.convoMu.Unlock()
+
 		err := fmt.Sprintf("wrong round (currently %d)", currRound)
 		go c.Send(&ConvoError{Round: r.Round, Err: err})
+
 		return
 	}
 
@@ -180,10 +179,12 @@ func (srv *server) convoRoundLoop() {
 		time.Sleep(*receiveWait)
 
 		srv.convoMu.Lock()
+
 		go srv.runConvoRound(srv.convoRound, srv.convoRequests)
 
 		srv.convoRound += 1
 		srv.convoRequests = make([]*convoReq, 0, len(srv.convoRequests))
+
 		srv.convoMu.Unlock()
 	}
 }
@@ -211,11 +212,14 @@ func (srv *server) runConvoRound(round uint32, requests []*convoReq) {
 	rlog.WithFields(log.Fields{"replies": len(replies)}).Info("Success")
 
 	concurrency.ParallelFor(len(replies), func(p *concurrency.P) {
+
 		for i, ok := p.Next(); ok; i, ok = p.Next() {
+
 			reply := &ConvoResponse{
 				Round: round,
 				Onion: replies[i],
 			}
+
 			conns[i].Send(reply)
 		}
 	})
@@ -259,6 +263,10 @@ var addr = flag.String("addr", ":8080", "http service address")
 var pkiPath = flag.String("pki", "confs/pki.conf", "pki file")
 var receiveWait = flag.Duration("wait", DefaultReceiveWait, "")
 
+// Evaluation flags.
+var isEvalFlag = flag.Bool("eval", false, "Append this flag to write evaluation metrics out to a collector process.")
+var metricsPipeFlag = flag.String("metricsPipe", "/tmp/collect", "Specify the named pipe to use for IPC with the collector sidecar.")
+
 func main() {
 
 	flag.Parse()
@@ -282,8 +290,18 @@ func main() {
 		connections:   make(map[*connection]bool),
 		convoRound:    0,
 		convoRequests: make([]*convoReq, 0, 10000),
-		dialRound:     0,
-		dialRequests:  make([]*dialReq, 0, 10000),
+		IsEval:        *isEvalFlag,
+	}
+
+	if srv.IsEval {
+
+		// Open named pipe for sending metrics to collector.
+		pipe, err := os.OpenFile(*metricsPipeFlag, os.O_WRONLY, 0600)
+		if err != nil {
+			fmt.Printf("Unable to open named pipe for sending metrics to collector: %v\n", err)
+			os.Exit(1)
+		}
+		srv.MetricsPipe = pipe
 	}
 
 	go srv.convoRoundLoop()

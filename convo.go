@@ -3,6 +3,7 @@ package vuvuzela
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -29,6 +30,9 @@ type ConvoService struct {
 	LastServer bool
 
 	AccessCounts chan *AccessCount
+
+	IsEval      bool
+	MetricsPipe *os.File
 }
 
 type ConvoRound struct {
