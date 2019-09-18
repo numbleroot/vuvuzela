@@ -122,9 +122,9 @@ func main() {
 
 	gc.switchConversation(*peer)
 
-	gc.selectedConvo.QueueTextMessage([]byte("rofllol"))
-	gc.selectedConvo.QueueTextMessage([]byte("xD"))
-	gc.selectedConvo.QueueTextMessage([]byte("lmfao"))
+	gc.selectedConvo.QueueTextMessage([]byte("test message one"))
+	gc.selectedConvo.QueueTextMessage([]byte("test message two"))
+	gc.selectedConvo.QueueTextMessage([]byte("test message three"))
 
 	err := gc.client.Connect()
 	if err != nil {
