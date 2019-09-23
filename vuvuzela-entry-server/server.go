@@ -259,7 +259,7 @@ func (srv *server) wsHandler(w http.ResponseWriter, r *http.Request) {
 	c.readLoop()
 }
 
-var addr = flag.String("addr", ":8080", "http service address")
+var addr = flag.String("addr", "0.0.0.0:33001", "http service address")
 var pkiPath = flag.String("pki", "confs/pki.conf", "pki file")
 var receiveWait = flag.Duration("wait", DefaultReceiveWait, "")
 

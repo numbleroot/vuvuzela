@@ -24,16 +24,21 @@ type PKI struct {
 }
 
 func ReadPKI(jsonPath string) *PKI {
+
 	pki := new(PKI)
 	ReadJSONFile(jsonPath, pki)
+
 	if len(pki.ServerOrder) == 0 {
 		log.Fatalf("%q: ServerOrder must contain at least one server", jsonPath)
 	}
+
 	for _, s := range pki.ServerOrder {
+
 		info, ok := pki.Servers[s]
 		if !ok {
 			log.Fatalf("%q: server %q not found", jsonPath, s)
 		}
+
 		addr := info.Address
 		if addr == "" {
 			log.Fatalf("%q: server %q does not specify an Address", jsonPath, s)
@@ -43,6 +48,7 @@ func ReadPKI(jsonPath string) *PKI {
 			info.Address = net.JoinHostPort(addr, DefaultServerPort)
 		}
 	}
+
 	return pki
 }
 
