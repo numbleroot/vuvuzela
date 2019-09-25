@@ -56,8 +56,25 @@ func (c *Client) Connect() error {
 		HandshakeTimeout: 5 * time.Second,
 	}
 
+	tried := 1
+
+	// Reliably connect to entry server.
 	ws, _, err := dialer.Dial(wsaddr, nil)
+	for (err != nil) && (tried <= 20) {
+
+		fmt.Printf("Connecting to entry server failed %d time(s), will try again: %v\n", tried, err)
+		time.Sleep(100 * time.Millisecond)
+		tried++
+
+		ws, _, err = dialer.Dial(wsaddr, nil)
+	}
+
 	if err != nil {
+
+		// If connecting to the entry server failed
+		// too many times, give up.
+		fmt.Printf("Connecting to entry server failed %d times, returning with error.\n", tried)
+
 		return err
 	}
 

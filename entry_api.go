@@ -63,7 +63,9 @@ func (e *Envelope) Open() (interface{}, error) {
 }
 
 func Envelop(v interface{}) (*Envelope, error) {
+
 	var t MsgType
+
 	switch v.(type) {
 	case *ConvoRequest:
 		t = MsgConvoRequest
@@ -86,10 +88,12 @@ func Envelop(v interface{}) (*Envelope, error) {
 	default:
 		return nil, fmt.Errorf("unsupported message type: %T", v)
 	}
+
 	data, err := json.Marshal(v)
 	if err != nil {
 		return nil, fmt.Errorf("json.Marshal: %s", err)
 	}
+
 	return &Envelope{
 		Type:    t,
 		Message: data,

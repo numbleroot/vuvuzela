@@ -128,11 +128,11 @@ func main() {
 
 	err := gc.client.Connect()
 	if err != nil {
-		fmt.Printf("Could not connect: %v\n", err)
+		fmt.Printf("Could not connect to coordinator: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Connected: %s\n", gc.pki.EntryServer)
+	fmt.Printf("Connected to coordinator at %s.\n", gc.pki.EntryServer)
 
 	for {
 

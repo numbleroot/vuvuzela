@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 
@@ -58,8 +59,12 @@ func main() {
 	if addr != "" {
 
 		client, err = vrpc.Dial("tcp", addr, runtime.NumCPU())
-		if err != nil {
-			log.Fatalf("vrpc.Dial: %s", err)
+		for err != nil {
+
+			log.Printf("vrpc.Dial to successor mix failed, will try again: %v", err)
+			time.Sleep(150 * time.Millisecond)
+
+			client, err = vrpc.Dial("tcp", addr, runtime.NumCPU())
 		}
 	}
 

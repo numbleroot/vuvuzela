@@ -275,13 +275,21 @@ func main() {
 	pki := ReadPKI(*pkiPath)
 
 	firstServer, err := vrpc.Dial("tcp", pki.FirstServer(), runtime.NumCPU())
-	if err != nil {
-		log.Fatalf("vrpc.Dial: %s", err)
+	for err != nil {
+
+		log.Printf("vrpc.Dial to first mix failed, will try again: %v", err)
+		time.Sleep(150 * time.Millisecond)
+
+		firstServer, err = vrpc.Dial("tcp", pki.FirstServer(), runtime.NumCPU())
 	}
 
 	lastServer, err := vrpc.Dial("tcp", pki.LastServer(), 1)
-	if err != nil {
-		log.Fatalf("vrpc.Dial: %s", err)
+	for err != nil {
+
+		log.Printf("vrpc.Dial to last mix failed, will try again: %v", err)
+		time.Sleep(150 * time.Millisecond)
+
+		lastServer, err = vrpc.Dial("tcp", pki.LastServer(), 1)
 	}
 
 	srv := &server{
