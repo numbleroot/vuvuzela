@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	SizeMessage = 240
+	SizeMessage = 256
 
 	// Eventually this might be dynamic, but one bucket is usually
 	// sufficient if users don't dial very often.

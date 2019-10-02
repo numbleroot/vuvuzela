@@ -24,7 +24,6 @@ var listenAddr = flag.String("addr", "0.0.0.0:33001", "mix server listen address
 var pkiPath = flag.String("pki", "confs/pki.conf", "pki file")
 
 // Evaluation flags.
-var isEvalFlag = flag.Bool("eval", false, "Append this flag to write evaluation metrics out to a collector process.")
 var metricsPipeFlag = flag.String("metricsPipe", "/tmp/collect", "Specify the named pipe to use for IPC with the collector sidecar.")
 
 type Conf struct {
@@ -84,22 +83,17 @@ func main() {
 
 		Client:     client,
 		LastServer: client == nil,
-
-		IsEval: *isEvalFlag,
 	}
 
 	InitConvoService(convoService)
 
-	if convoService.IsEval {
-
-		// Open named pipe for sending metrics to collector.
-		pipe, err := os.OpenFile(*metricsPipeFlag, os.O_WRONLY, 0600)
-		if err != nil {
-			fmt.Printf("Unable to open named pipe for sending metrics to collector: %v\n", err)
-			os.Exit(1)
-		}
-		convoService.MetricsPipe = pipe
+	// Open named pipe for sending metrics to collector.
+	pipe, err := os.OpenFile(*metricsPipeFlag, os.O_WRONLY, 0600)
+	if err != nil {
+		fmt.Printf("Unable to open named pipe for sending metrics to collector: %v\n", err)
+		os.Exit(1)
 	}
+	convoService.MetricsPipe = pipe
 
 	err = rpc.Register(convoService)
 	if err != nil {

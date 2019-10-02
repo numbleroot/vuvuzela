@@ -118,6 +118,10 @@ func (c *Client) Send(v interface{}) {
 		return
 	}
 
+	// Save send time.
+	sendTime := time.Now().UnixNano()
+	fmt.Printf("Send time of message '%v': %d\n", e.Message, sendTime)
+
 	c.Unlock()
 }
 

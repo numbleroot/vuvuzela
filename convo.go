@@ -31,7 +31,6 @@ type ConvoService struct {
 
 	AccessCounts chan *AccessCount
 
-	IsEval      bool
 	MetricsPipe *os.File
 }
 

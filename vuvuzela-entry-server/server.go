@@ -29,7 +29,6 @@ type server struct {
 	firstServer *vrpc.Client
 	lastServer  *vrpc.Client
 
-	IsEval      bool
 	MetricsPipe *os.File
 }
 
@@ -264,7 +263,6 @@ var pkiPath = flag.String("pki", "confs/pki.conf", "pki file")
 var receiveWait = flag.Duration("wait", DefaultReceiveWait, "")
 
 // Evaluation flags.
-var isEvalFlag = flag.Bool("eval", false, "Append this flag to write evaluation metrics out to a collector process.")
 var metricsPipeFlag = flag.String("metricsPipe", "/tmp/collect", "Specify the named pipe to use for IPC with the collector sidecar.")
 
 func main() {
@@ -298,19 +296,15 @@ func main() {
 		connections:   make(map[*connection]bool),
 		convoRound:    0,
 		convoRequests: make([]*convoReq, 0, 10000),
-		IsEval:        *isEvalFlag,
 	}
 
-	if srv.IsEval {
-
-		// Open named pipe for sending metrics to collector.
-		pipe, err := os.OpenFile(*metricsPipeFlag, os.O_WRONLY, 0600)
-		if err != nil {
-			fmt.Printf("Unable to open named pipe for sending metrics to collector: %v\n", err)
-			os.Exit(1)
-		}
-		srv.MetricsPipe = pipe
+	// Open named pipe for sending metrics to collector.
+	pipe, err := os.OpenFile(*metricsPipeFlag, os.O_WRONLY, 0600)
+	if err != nil {
+		fmt.Printf("Unable to open named pipe for sending metrics to collector: %v\n", err)
+		os.Exit(1)
 	}
+	srv.MetricsPipe = pipe
 
 	go srv.convoRoundLoop()
 
