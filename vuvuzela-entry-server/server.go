@@ -222,6 +222,12 @@ func (srv *server) runConvoRound(round uint32, requests []*convoReq) {
 			conns[i].Send(reply)
 		}
 	})
+
+	if round >= 35 {
+		fmt.Fprintf(srv.MetricsPipe, "done\n")
+		fmt.Printf("Round %d at coordinator, assuming evaluation done, exiting.\n", round)
+		os.Exit(0)
+	}
 }
 
 var upgrader = websocket.Upgrader{

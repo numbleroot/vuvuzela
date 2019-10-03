@@ -43,10 +43,9 @@ type GuiClient struct {
 	conversations map[string]*Conversation
 
 	NumMsgToRecv int
-	MetricsPipe  *os.File
 }
 
-func (gc *GuiClient) switchConversation(peer string) {
+func (gc *GuiClient) switchConversation(peer string, metricsPipe *os.File) {
 
 	var convo *Conversation
 
@@ -66,6 +65,7 @@ func (gc *GuiClient) switchConversation(peer string) {
 			myPublicKey:   gc.myPublicKey,
 			myPrivateKey:  gc.myPrivateKey,
 			gui:           gc,
+			MetricsPipe:   metricsPipe,
 		}
 
 		convo.Init()
@@ -99,25 +99,23 @@ func main() {
 		log.Fatalf("missing required fields: %s", *confPath)
 	}
 
-	gc := &GuiClient{
-		pki:           pki,
-		myName:        conf.MyName,
-		myPublicKey:   conf.MyPublicKey,
-		myPrivateKey:  conf.MyPrivateKey,
-		client:        NewClient(pki.EntryServer, conf.MyPublicKey),
-		conversations: make(map[string]*Conversation),
-		NumMsgToRecv:  *numMsgToRecvFlag,
-	}
-
 	// Open named pipe for sending metrics to collector.
 	pipe, err := os.OpenFile(*metricsPipeFlag, os.O_WRONLY, 0600)
 	if err != nil {
 		fmt.Printf("Unable to open named pipe for sending metrics to collector: %v\n", err)
 		os.Exit(1)
 	}
-	gc.MetricsPipe = pipe
 
-	gc.switchConversation(*peer)
+	gc := &GuiClient{
+		pki:           pki,
+		myName:        conf.MyName,
+		myPublicKey:   conf.MyPublicKey,
+		myPrivateKey:  conf.MyPrivateKey,
+		client:        NewClient(pki.EntryServer, conf.MyPublicKey, pipe),
+		conversations: make(map[string]*Conversation),
+		NumMsgToRecv:  *numMsgToRecvFlag,
+	}
+	gc.switchConversation(*peer, pipe)
 
 	for msgID := 1; msgID <= 64; msgID++ {
 
@@ -170,8 +168,6 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("Receive time of message '%v': %d\n", e.Message, recvTime)
-
-		go gc.client.handleResponse(v)
+		go gc.client.handleResponse(v, recvTime)
 	}
 }

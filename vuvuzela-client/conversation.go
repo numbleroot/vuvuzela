@@ -7,6 +7,8 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +36,8 @@ type Conversation struct {
 	lastPeerResponding bool
 	lastLatency        time.Duration
 	lastRound          uint32
+
+	MetricsPipe *os.File
 }
 
 func (c *Conversation) Init() {
@@ -107,10 +111,14 @@ func (c *Conversation) NextConvoRequest(round uint32) *ConvoRequest {
 	c.Unlock()
 
 	var body interface{}
+	var convoID [26]byte
+	var seqNo [5]byte
 
 	select {
 	case m := <-c.outQueue:
 		body = &TextMessage{Message: m}
+		copy(convoID[:], m[:26])
+		copy(seqNo[:], m[26:31])
 	default:
 		body = &TimestampMessage{
 			Timestamp: time.Now(),
@@ -142,6 +150,10 @@ func (c *Conversation) NextConvoRequest(round uint32) *ConvoRequest {
 	c.Lock()
 	c.pendingRounds[round] = pr
 	c.Unlock()
+
+	// Pipe out conversation ID and message
+	// sequence number to metrics collector.
+	fmt.Fprintf(c.MetricsPipe, "send;%s %s\n", convoID, seqNo)
 
 	return &ConvoRequest{
 		Round: round,
@@ -197,8 +209,29 @@ func (c *Conversation) HandleConvoResponse(r *ConvoResponse) {
 
 	switch m := msg.Body.(type) {
 	case *TextMessage:
+
+		// Pipe out conversation ID and message
+		// sequence number to metrics collector.
+		fmt.Fprintf(c.MetricsPipe, "recv;%s %s\n", m.Message[:26], m.Message[26:31])
+
 		s := strings.TrimRight(string(m.Message), "\x00")
 		fmt.Printf("<%s> %s\n", c.peerName, s)
+
+		msgID, err := strconv.Atoi(string(m.Message[26:31]))
+		if err != nil {
+			fmt.Printf("Failed to convert message sequence string to number: %v\n", err)
+			os.Exit(1)
+		}
+
+		if msgID >= 35 {
+
+			fmt.Fprintf(c.MetricsPipe, "done\n")
+			fmt.Printf("Number of messages to evaluate received, terminating.\n")
+
+			time.Sleep(1 * time.Second)
+			os.Exit(0)
+		}
+
 	case *TimestampMessage:
 		latency := time.Now().Sub(m.Timestamp)
 		c.Lock()

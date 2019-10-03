@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -21,6 +22,8 @@ type Client struct {
 
 	roundHandlers map[uint32]ConvoHandler
 	convoHandler  ConvoHandler
+
+	MetricsPipe *os.File
 }
 
 type ConvoHandler interface {
@@ -28,12 +31,13 @@ type ConvoHandler interface {
 	HandleConvoResponse(response *ConvoResponse)
 }
 
-func NewClient(entryServer string, publicKey *BoxKey) *Client {
+func NewClient(entryServer string, publicKey *BoxKey, metricsPipe *os.File) *Client {
 
 	return &Client{
 		EntryServer:   entryServer,
 		MyPublicKey:   publicKey,
 		roundHandlers: make(map[uint32]ConvoHandler),
+		MetricsPipe:   metricsPipe,
 	}
 }
 
@@ -118,14 +122,15 @@ func (c *Client) Send(v interface{}) {
 		return
 	}
 
-	// Save send time.
+	// Pipe out send time of message
+	// to metrics collector.
 	sendTime := time.Now().UnixNano()
-	fmt.Printf("Send time of message '%v': %d\n", e.Message, sendTime)
+	fmt.Fprintf(c.MetricsPipe, "send;%d\n", sendTime)
 
 	c.Unlock()
 }
 
-func (c *Client) handleResponse(v interface{}) {
+func (c *Client) handleResponse(v interface{}, recvTime int64) {
 
 	switch v := v.(type) {
 	case *BadRequestError:
@@ -133,6 +138,11 @@ func (c *Client) handleResponse(v interface{}) {
 	case *AnnounceConvoRound:
 		c.Send(c.nextConvoRequest(v.Round))
 	case *ConvoResponse:
+
+		// Pipe out receive time of message
+		// to metrics collector.
+		fmt.Fprintf(c.MetricsPipe, "recv;%d\n", recvTime)
+
 		c.deliverConvoResponse(v)
 	}
 }
