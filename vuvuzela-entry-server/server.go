@@ -223,7 +223,7 @@ func (srv *server) runConvoRound(round uint32, requests []*convoReq) {
 		}
 	})
 
-	if round >= 35 {
+	if round >= 40 {
 		fmt.Fprintf(srv.MetricsPipe, "done\n")
 		fmt.Printf("Round %d at coordinator, assuming evaluation done, exiting.\n", round)
 		os.Exit(0)

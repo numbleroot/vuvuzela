@@ -215,7 +215,7 @@ func (c *Conversation) HandleConvoResponse(r *ConvoResponse) {
 		// sequence number to metrics collector.
 		fmt.Fprintf(c.MetricsPipe, "recv;%s %s\n", m.Message[:26], m.Message[26:31])
 
-		s := strings.TrimRight(string(m.Message), "\x00")
+		s := strings.TrimRight(string(m.Message[31:]), "\x00")
 		fmt.Printf("<%s> %s\n", c.peerName, s)
 
 		msgID, err := strconv.Atoi(string(m.Message[26:31]))

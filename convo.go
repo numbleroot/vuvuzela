@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"golang.org/x/crypto/nacl/box"
@@ -397,10 +398,13 @@ func (srv *ConvoService) Delete(Round uint32, _ *struct{}) error {
 	delete(srv.rounds, Round)
 	srv.roundsMu.Unlock()
 
-	if Round >= 35 {
+	if Round >= 40 {
 		fmt.Fprintf(srv.MetricsPipe, "done\n")
-		fmt.Printf("Round %d at '%s', assuming evaluation done, exiting.\n", Round, srv.ServerName)
-		os.Exit(0)
+		fmt.Printf("Round %d at '%s', assuming evaluation done, will exit in 5 seconds.\n", Round, srv.ServerName)
+		time.AfterFunc((5 * time.Second), func() {
+			fmt.Printf("Exiting now, goodbye.\n")
+			os.Exit(0)
+		})
 	}
 
 	return nil
