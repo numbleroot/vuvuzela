@@ -41,11 +41,9 @@ type GuiClient struct {
 	client        *Client
 	selectedConvo *Conversation
 	conversations map[string]*Conversation
-
-	NumMsgToRecv int
 }
 
-func (gc *GuiClient) switchConversation(peer string, metricsPipe *os.File) {
+func (gc *GuiClient) switchConversation(peer string, metricsPipe *os.File, numMsgToRecv int) {
 
 	var convo *Conversation
 
@@ -65,6 +63,7 @@ func (gc *GuiClient) switchConversation(peer string, metricsPipe *os.File) {
 			myPublicKey:   gc.myPublicKey,
 			myPrivateKey:  gc.myPrivateKey,
 			gui:           gc,
+			NumMsgToRecv:  numMsgToRecv,
 			MetricsPipe:   metricsPipe,
 		}
 
@@ -113,9 +112,8 @@ func main() {
 		myPrivateKey:  conf.MyPrivateKey,
 		client:        NewClient(pki.EntryServer, conf.MyPublicKey, pipe),
 		conversations: make(map[string]*Conversation),
-		NumMsgToRecv:  *numMsgToRecvFlag,
 	}
-	gc.switchConversation(*peer, pipe)
+	gc.switchConversation(*peer, pipe, *numMsgToRecvFlag)
 
 	for msgID := 1; msgID <= 64; msgID++ {
 

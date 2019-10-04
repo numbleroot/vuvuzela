@@ -37,7 +37,8 @@ type Conversation struct {
 	lastLatency        time.Duration
 	lastRound          uint32
 
-	MetricsPipe *os.File
+	NumMsgToRecv int
+	MetricsPipe  *os.File
 }
 
 func (c *Conversation) Init() {
@@ -223,10 +224,10 @@ func (c *Conversation) HandleConvoResponse(r *ConvoResponse) {
 			os.Exit(1)
 		}
 
-		if msgID >= 35 {
+		if msgID >= c.NumMsgToRecv {
 
 			fmt.Fprintf(c.MetricsPipe, "done\n")
-			fmt.Printf("Number of messages to evaluate received, terminating.\n")
+			fmt.Printf("Number of messages to evaluate received (want: %d, saw: %d), terminating.\n", c.NumMsgToRecv, msgID)
 
 			time.Sleep(1 * time.Second)
 			os.Exit(0)
