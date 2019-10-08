@@ -398,7 +398,7 @@ func (srv *ConvoService) Delete(Round uint32, _ *struct{}) error {
 	delete(srv.rounds, Round)
 	srv.roundsMu.Unlock()
 
-	if Round >= 40 {
+	if Round >= 32 {
 		fmt.Fprintf(srv.MetricsPipe, "done\n")
 		fmt.Printf("Round %d at '%s', assuming evaluation done, will exit in 5 seconds.\n", Round, srv.ServerName)
 		time.AfterFunc((5 * time.Second), func() {
